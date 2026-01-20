@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "epicNotes"
+rootProject.name = "EpicNotes"
 include(":app")
