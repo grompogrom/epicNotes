@@ -1,0 +1,11 @@
+# Requirements for STEP 1: Model Testing
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+mediapipe>=0.10.14
+huggingface-hub>=0.20.0
+psutil>=5.9.0
+
+# Already installed in venv (keeping for reference)
+# torch>=2.0.0
+# transformers>=4.36.0

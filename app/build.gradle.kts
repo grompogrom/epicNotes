@@ -37,6 +37,22 @@ android {
     buildFeatures {
         compose = true
     }
+    
+    // Configure asset packaging for LLM model files
+    androidResources {
+        noCompress += listOf("tflite", "bin", "task")
+    }
+    
+    // Exclude large model files from APK to avoid ZIP32 4GB limit
+    // Models will be downloaded on-demand or pushed manually via ADB
+    packaging {
+        resources {
+            excludes += listOf(
+                "**/models/*.task",
+                "**/models/*.bin"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -53,6 +69,10 @@ dependencies {
     // Koin for dependency injection
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    
+    // MediaPipe for on-device LLM inference
+    implementation(libs.mediapipe.tasks.genai)
+    implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

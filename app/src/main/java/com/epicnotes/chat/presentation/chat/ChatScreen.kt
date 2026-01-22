@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -122,6 +123,18 @@ fun ChatScreen(
                 }
             }
 
+            // Progress indicator (if active)
+            if (uiState.isSending && uiState.progressMessage != null) {
+                ProgressIndicator(
+                    message = uiState.progressMessage!!,
+                    estimatedSeconds = uiState.estimatedTimeSeconds,
+                    canCancel = uiState.canCancel,
+                    onCancelClicked = {
+                        viewModel.onEvent(ChatEvent.CancelClicked)
+                    }
+                )
+            }
+            
             // Input field
             InputBar(
                 inputText = uiState.inputText,
@@ -190,6 +203,86 @@ private fun MessageBubble(message: com.epicnotes.chat.domain.model.ChatMessage) 
                     color = textColor.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Progress indicator showing AI processing status with cancel option.
+ */
+@Composable
+private fun ProgressIndicator(
+    message: String,
+    estimatedSeconds: Int,
+    canCancel: Boolean,
+    onCancelClicked: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .padding(end = 12.dp),
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    strokeWidth = 3.dp
+                )
+                
+                Column {
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        fontWeight = FontWeight.Medium
+                    )
+                    
+                    if (estimatedSeconds > 0) {
+                        Text(
+                            text = "Estimated time: ${estimatedSeconds}s",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
+            }
+            
+            if (canCancel) {
+                Button(
+                    onClick = onCancelClicked,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
+                    shape = RoundedCornerShape(20.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Cancel",
+                        tint = MaterialTheme.colorScheme.onError
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Cancel",
+                        color = MaterialTheme.colorScheme.onError
+                    )
+                }
             }
         }
     }

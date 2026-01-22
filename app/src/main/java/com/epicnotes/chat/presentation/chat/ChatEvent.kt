@@ -19,4 +19,9 @@ sealed class ChatEvent {
      * User has dismissed the error message
      */
     data object ErrorDismissed : ChatEvent()
+    
+    /**
+     * User has clicked the cancel button to stop the current operation
+     */
+    data object CancelClicked : ChatEvent()
 }
