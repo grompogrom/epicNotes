@@ -74,7 +74,7 @@ class ChatViewModel(
 
     /**
      * Sends a message and gets an AI response with progress tracking and cancellation support.
-     * Updates UI state to show loading, progress, then adds messages to the conversation.
+     * User message appears immediately, then LLM response is generated.
      */
     private fun sendMessage() {
         val inputText = _uiState.value.inputText.trim()
@@ -87,14 +87,24 @@ class ChatViewModel(
 
         currentSendJob = viewModelScope.launch {
             try {
+                // IMPORTANT: Add user message to state IMMEDIATELY (like Messenger)
+                val userMessage = com.epicnotes.chat.domain.model.ChatMessage(
+                    content = inputText,
+                    sender = com.epicnotes.chat.domain.model.Sender.USER
+                )
+                _uiState.value = _uiState.value.copy(
+                    messages = _uiState.value.messages + userMessage,
+                    inputText = ""
+                )
+
                 // Determine estimated time based on whether this is the first message
                 val estimatedTime = if (isFirstMessage) {
                     FIRST_MESSAGE_ESTIMATED_TIME
                 } else {
                     NORMAL_MESSAGE_ESTIMATED_TIME
                 }
-                
-                // Set sending state with progress
+
+                // Set sending state to show typing indicator
                 _uiState.value = _uiState.value.copy(
                     isSending = true,
                     error = null,
@@ -106,7 +116,7 @@ class ChatViewModel(
                     },
                     estimatedTimeSeconds = estimatedTime
                 )
-                
+
                 // Start a countdown timer for better UX
                 val timerJob = launch {
                     var remaining = estimatedTime
@@ -124,38 +134,40 @@ class ChatViewModel(
                     userContent = inputText,
                     conversationHistory = _uiState.value.messages
                 )
-                
+
                 // Cancel timer once we have a result
                 timerJob.cancel()
 
                 result.fold(
-                    onSuccess = { (userMessage, assistantMessage) ->
-                        // Add user message
-                        val updatedMessages = _uiState.value.messages + userMessage
+                    onSuccess = { (_, assistantMessage) ->
+                        // Only add assistant message (user message already in state)
+                        if (assistantMessage != null) {
+                            _uiState.value = _uiState.value.copy(
+                                messages = _uiState.value.messages + assistantMessage,
+                                isSending = false,
+                                error = null,
+                                progressMessage = null,
+                                estimatedTimeSeconds = 0,
+                                canCancel = false
+                            )
+                        } else {
+                            _uiState.value = _uiState.value.copy(
+                                isSending = false,
+                                error = null,
+                                progressMessage = null,
+                                estimatedTimeSeconds = 0,
+                                canCancel = false
+                            )
+                        }
 
-                        // Add assistant message if available
-                        _uiState.value = _uiState.value.copy(
-                            messages = if (assistantMessage != null) {
-                                updatedMessages + assistantMessage
-                            } else {
-                                updatedMessages
-                            },
-                            inputText = "",
-                            isSending = false,
-                            error = null,
-                            progressMessage = null,
-                            estimatedTimeSeconds = 0,
-                            canCancel = false
-                        )
-                        
                         // Mark that we've successfully sent the first message
                         isFirstMessage = false
-                        
+
                         Log.d(TAG, "Message sent successfully")
                     },
                     onFailure = { exception ->
                         Log.e(TAG, "Failed to send message", exception)
-                        
+
                         // Provide user-friendly error messages
                         val errorMessage = when {
                             exception.message?.contains("out of memory", ignoreCase = true) == true ->
@@ -169,7 +181,7 @@ class ChatViewModel(
                             else ->
                                 exception.message ?: "Failed to send message. Please try again."
                         }
-                        
+
                         _uiState.value = _uiState.value.copy(
                             isSending = false,
                             error = errorMessage,
